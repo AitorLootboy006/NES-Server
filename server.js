@@ -14,6 +14,8 @@ const wss = new WebSocketServer({ server });
 const rooms = {};
 
 wss.on("connection", (ws) => {
+  console.log("Cliente conectado");
+
   ws.on("message", (msg) => {
     try {
       const data = JSON.parse(msg);
@@ -21,6 +23,7 @@ wss.on("connection", (ws) => {
         ws.room = data.room;
         rooms[data.room] = rooms[data.room] || [];
         rooms[data.room].push(ws);
+        console.log(`Sala ${data.room}: ${rooms[data.room].length} jugadores conectados`);
       }
       if (data.type === "input" && ws.room) {
         rooms[ws.room].forEach(client => {
@@ -37,8 +40,17 @@ wss.on("connection", (ws) => {
   ws.on("close", () => {
     if (ws.room && rooms[ws.room]) {
       rooms[ws.room] = rooms[ws.room].filter(client => client !== ws);
+      console.log(`Cliente salió de sala ${ws.room}`);
     }
   });
+});
+
+app.get("/status", (_, res) => {
+  const summary = {};
+  for (const room in rooms) {
+    summary[room] = rooms[room].length;
+  }
+  res.json(summary);
 });
 
 server.listen(PORT, () => {
